@@ -1,275 +1,213 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_youtube_view/flutter_youtube_view.dart';
+import 'dart:collection';
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:html_unescape/html_unescape.dart';
+import 'package:xml2json/xml2json.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
+import 'video_list.dart';
+
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:xml/xml.dart' as xml;
+import 'dart:convert' as convert;
+import 'package:flutter/foundation.dart';
+
+/// Homepage
 class YoutubeCustomWidget extends StatefulWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyAppState extends State<YoutubeCustomWidget>
-    implements YouTubePlayerListener {
-  double _volume = 50;
-  double _videoDuration = 0.0;
-  double _currentVideoSecond = 0.0;
-  String _playerState = "";
-  FlutterYoutubeViewController _controller;
-  YoutubeScaleMode _mode = YoutubeScaleMode.none;
-  PlaybackRate _playbackRate = PlaybackRate.RATE_1;
-  bool _isMuted = false;
+class _MyHomePageState extends State<YoutubeCustomWidget> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
+  YoutubePlayerController _controller;
+  TextEditingController _idController;
+  TextEditingController _seekToController;
+
+  PlayerState _playerState;
+  double _volume = 100;
+  bool _muted = false;
+  bool _isPlayerReady = false;
 
   @override
-  void onCurrentSecond(double second) {
-   // print("onCurrentSecond second = $second");
-    _currentVideoSecond = second;
+  void initState() {
+    super.initState();
+
+    _controller = YoutubePlayerController(
+      initialVideoId: 'H14bBuluwB8',
+      flags: YoutubePlayerFlags(
+        mute: false,
+        autoPlay: true,
+        forceHideAnnotation: true,
+        disableDragSeek: false,
+        loop: false,
+        isLive: false,
+      ),
+    )..addListener(listener);
+
+    _idController = TextEditingController();
+    _seekToController = TextEditingController();
+    _playerState = PlayerState.unknown;
+
+//    fetchPost();
+
   }
 
-  @override
-  void onError(String error) {
-    print("onError error = $error");
+  fetchPost() async {
+
+    var url = 'https://www.youtube.com/api/timedtext?v=H14bBuluwB8&lang=en';
+    var xml2json = Xml2Json();
+
+    var response = await http.get(url);
+    var unescape = HtmlUnescape();
+    var body = unescape.convert(response.body);
+    xml2json.parse(body);
+    var jsondata = xml2json.toGData();
+    print('Response status: ${response.statusCode}');
+
+//    JsonEncoder encoder = new JsonEncoder.withIndent('  ');
+//    String prettyprint = encoder.convert(json.decode(jsondata));
+//    print(prettyprint);
+
+    var json_data = json.decode(jsondata);
+    var transcript = json_data['transcript'];
+
+    for (var sentence in transcript['text']) {
+      print(sentence['start'].toString());
+      print(sentence[r'$t']);
+    }
+
+    // Await the http get response, then decode the json-formatted response.var response = await http.get(url);
+    if (response.statusCode == 200) {
+      print('-------------------------------------------');
+//      print('Number of books about http: ${response.body}).');
+
+    } else {
+      print('Request failed with status: ${response.statusCode}.');
+    }
   }
 
-  @override
-  void onReady() {
-    print("onReady");
-  }
 
-  @override
-  void onStateChange(String state) {
-    print("onStateChange state = $state");
-    setState(() {
-      _playerState = state;
-    });
-  }
-
-  @override
-  void onVideoDuration(double duration) {
-    print("onVideoDuration duration = $duration");
-  }
-
-  void _onYoutubeCreated(FlutterYoutubeViewController controller) {
-    this._controller = controller;
-  }
-
-  void _loadOrCueVideo() {
-    _controller.loadOrCueVideo('Ks7X9JuzPbg', _currentVideoSecond);
-  }
-
-  void _play() {
-    _controller.play();
-  }
-
-  void _pause() {
-    _controller.pause();
-  }
-
-  void _seekTo(double time) {
-    _controller.seekTo(time);
-  }
-
-  void _setVolume(int volumePercent) {
-    _controller.setVolume(volumePercent);
-  }
-
-  void _changeScaleMode(YoutubeScaleMode mode) {
-    setState(() {
-        _mode = mode;
-        _controller.changeScaleMode(mode);
-    });
-  }
-
-  void _changeVolumeMode(bool isMuted) {
-    setState(() {
-      _isMuted = isMuted;
-      if (isMuted) {
-        _controller.setMute();
-      } else {
-        _controller.setUnMute();
+  void listener() {
+    if (_isPlayerReady) {
+      if (_controller.value.playerState == PlayerState.ended) {
+        _showSnackBar('Video Ended!');
       }
-    });
+      if (mounted && !_controller.value.isFullScreen) {
+        setState(() {
+          _playerState = _controller.value.playerState;
+        });
+      }
+    }
   }
 
-  void _changePlaybackRate(PlaybackRate playbackRate) {
-    setState(() {
-      _playbackRate = playbackRate;
-      _controller.setPlaybackRate(playbackRate);
-    });
+  @override
+  void deactivate() {
+    // Pauses video while navigating to next page.
+    _controller.pause();
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _idController.dispose();
+    _seekToController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Custom UI')
+      key: _scaffoldKey,
+      appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12.0),
+          child: Image.asset(
+            'assets/ypf.png',
+            fit: BoxFit.fitWidth,
+          ),
         ),
-        body: Stack(
-          children: <Widget>[
-            Container(
-                child: FlutterYoutubeView(
-                  scaleMode: _mode,
-                  onViewCreated: _onYoutubeCreated,
-                  listener: this,
-                  params: YoutubeParam(
-                      videoId: 'Ks7X9JuzPbg',
-                      showUI: false,
-                      startSeconds: 0.0,
-                      autoPlay: false,
+        title: Text(
+          'Youtube Player Flutter',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.video_library),
+            onPressed: () => Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => VideoList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: ListView(
+        children: [
+          YoutubePlayer(
+            controller: _controller,
+            showVideoProgressIndicator: true,
+            progressIndicatorColor: Colors.blueAccent,
+            topActions: <Widget>[
+              SizedBox(width: 8.0),
+              Expanded(
+                child: Text(
+                  _controller.value?.title ?? '',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.0,
                   ),
-                )),
-            Column(
-              children: <Widget>[
-                Text(
-                  'Current state: $_playerState',
-                  style: TextStyle(color: Colors.blue),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                RaisedButton(
-                  onPressed: _loadOrCueVideo,
-                  child: Text('Click reload video'),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.settings,
+                  color: Colors.white,
+                  size: 25.0,
                 ),
-                _buildControl(),
-                _buildVolume(),
-                _buildScaleModeRadioGroup(),
-                _buildPlaybackRate()
-              ],
-            )
-          ],
-        ));
-  }
-
-  Widget _buildControl() {
-    return new Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: <Widget>[
-        RaisedButton(
-          onPressed: _play,
-          child: Text('Play'),
-        ),
-        RaisedButton(
-          onPressed: _pause,
-          child: Text('Pause'),
-        ),
-        RaisedButton(
-          onPressed: () {
-            _seekTo(20.0);
-          },
-          child: Text('seekTo 20s'),
-        )
-      ],
+                onPressed: () {
+                  _showSnackBar('Settings Tapped!');
+                  fetchPost();
+                },
+              ),
+            ],
+            onReady: () {
+              _isPlayerReady = true;
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildScaleModeRadioGroup() {
-    return new Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        new Radio(
-          value: YoutubeScaleMode.none,
-          groupValue: _mode,
-          onChanged: _changeScaleMode,
+  void _showSnackBar(String message) {
+    _scaffoldKey.currentState.showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.w300,
+            fontSize: 16.0,
+          ),
         ),
-        new Text(
-          'none',
-          style: TextStyle(color: Colors.blue),
+        backgroundColor: Colors.blueAccent,
+        behavior: SnackBarBehavior.floating,
+        elevation: 1.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(50.0),
         ),
-        new Radio(
-          value: YoutubeScaleMode.fitWidth,
-          groupValue: _mode,
-          onChanged: _changeScaleMode,
-        ),
-        new Text(
-          'fitWidth',
-          style: TextStyle(color: Colors.blue),
-        ),
-        new Radio(
-          value: YoutubeScaleMode.fitHeight,
-          groupValue: _mode,
-          onChanged: _changeScaleMode,
-        ),
-        new Text(
-          'fitHeight',
-          style: TextStyle(color: Colors.blue),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVolume() {
-    return new Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        new Radio(
-          value: false,
-          groupValue: _isMuted,
-          onChanged: _changeVolumeMode,
-        ),
-        new Text(
-          'unMute',
-          style: TextStyle(color: Colors.blue),
-        ),
-        new Radio(
-          value: true,
-          groupValue: _isMuted,
-          onChanged: _changeVolumeMode,
-        ),
-        new Text(
-          'Mute',
-          style: TextStyle(color: Colors.blue),
-        )
-      ],
-    );
-  }
-
-  Widget _buildPlaybackRate() {
-    return new Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        new Radio(
-          value: PlaybackRate.RATE_0_25,
-          groupValue: _playbackRate,
-          onChanged: _changePlaybackRate,
-        ),
-        new Text(
-          '0_25',
-          style: TextStyle(color: Colors.blue),
-        ),
-        new Radio(
-          value: PlaybackRate.RATE_0_5,
-          groupValue: _playbackRate,
-          onChanged: _changePlaybackRate,
-        ),
-        new Text(
-          '0_5',
-          style: TextStyle(color: Colors.blue),
-        ),
-        new Radio(
-          value: PlaybackRate.RATE_1,
-          groupValue: _playbackRate,
-          onChanged: _changePlaybackRate,
-        ),
-        new Text(
-          '1',
-          style: TextStyle(color: Colors.blue),
-        ),
-        new Radio(
-          value: PlaybackRate.RATE_1_5,
-          groupValue: _playbackRate,
-          onChanged: _changePlaybackRate,
-        ),
-        new Text(
-          '1_5',
-          style: TextStyle(color: Colors.blue),
-        ),
-        new Radio(
-          value: PlaybackRate.RATE_2,
-          groupValue: _playbackRate,
-          onChanged: _changePlaybackRate,
-        ),
-        new Text(
-          '2',
-          style: TextStyle(color: Colors.blue),
-        )
-      ],
+      ),
     );
   }
 }
-
-
