@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_youtube_view/flutter_youtube_view.dart';
-import 'dart:collection';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -55,11 +53,9 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
     _playerState = PlayerState.unknown;
 
 //    fetchPost();
-
   }
 
   fetchPost() async {
-
     var url = 'https://www.youtube.com/api/timedtext?v=H14bBuluwB8&lang=en';
     var xml2json = Xml2Json();
 
@@ -81,6 +77,7 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
       print(sentence['start'].toString());
       print(sentence[r'$t']);
     }
+    _controller.seekTo(Duration(seconds:14, milliseconds: 954));
 
     // Await the http get response, then decode the json-formatted response.var response = await http.get(url);
     if (response.statusCode == 200) {
@@ -91,7 +88,6 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
       print('Request failed with status: ${response.statusCode}.');
     }
   }
-
 
   void listener() {
     if (_isPlayerReady) {
@@ -123,17 +119,9 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12.0),
-          child: Image.asset(
-            'assets/ypf.png',
-            fit: BoxFit.fitWidth,
-          ),
-        ),
         title: Text(
           'Youtube Player Flutter',
           style: TextStyle(color: Colors.white),
@@ -160,7 +148,7 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
               SizedBox(width: 8.0),
               Expanded(
                 child: Text(
-                  _controller.value?.title ?? '',
+                  'Test',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.0,
@@ -177,6 +165,7 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
                 ),
                 onPressed: () {
                   _showSnackBar('Settings Tapped!');
+                  _controller.seekTo(Duration(seconds: 15));
                   fetchPost();
                 },
               ),

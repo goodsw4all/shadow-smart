@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'YoutubeCustomWidget.dart';
 import 'YoutubeDefaultWidget.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.blueAccent,
+    ),
+  );
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -10,7 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       routes: <String, WidgetBuilder>{
         '/custom': (BuildContext context) => YoutubeCustomWidget(),
-        '/non_custom': (BuildContext context) => YoutubeDefaultWidget(),
+        '/non_custom': (BuildContext context) => null,
       },
       home: HomeScreen(),
     );
