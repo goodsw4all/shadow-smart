@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:html_unescape/html_unescape.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -23,125 +22,117 @@ class YoutubeCustomWidget extends StatefulWidget {
 
 class _MyHomePageState extends State<YoutubeCustomWidget> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
-  YoutubePlayerController _controller;
-  TextEditingController _idController;
-  TextEditingController _seekToController;
+  YoutubePlayerController _youtubeController;
+  ScrollController _scrollController;
 
   PlayerState _playerState;
   double _volume = 100;
   bool _muted = false;
   bool _isPlayerReady = false;
 
+  var sentences = [];
+  var currentSentence = 0;
+
   @override
   void initState() {
     super.initState();
 
-    _controller = YoutubePlayerController(
+    _youtubeController = YoutubePlayerController(
       initialVideoId: 'H14bBuluwB8',
       flags: YoutubePlayerFlags(
         mute: false,
-        autoPlay: true,
+        autoPlay: false,
         forceHideAnnotation: true,
         disableDragSeek: false,
         loop: false,
         isLive: false,
+        enableCaption: false,
+
       ),
-    )..addListener(listener);
+    ); //..addListener(listener);
 
-    _idController = TextEditingController();
-    _seekToController = TextEditingController();
+
+    _youtubeController.addListener(_youtubeListener);
     _playerState = PlayerState.unknown;
-
-//    fetchPost();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
   }
 
-  fetchPost() async {
-    var url = 'https://www.youtube.com/api/timedtext?v=H14bBuluwB8&lang=en';
-    var xml2json = Xml2Json();
+  void _scrollListener() {
+    print(_scrollController.toString());
 
-    var response = await http.get(url);
-    var unescape = HtmlUnescape();
-    var body = unescape.convert(response.body);
-    xml2json.parse(body);
-    var jsondata = xml2json.toGData();
-    print('Response status: ${response.statusCode}');
-
-//    JsonEncoder encoder = new JsonEncoder.withIndent('  ');
-//    String prettyprint = encoder.convert(json.decode(jsondata));
-//    print(prettyprint);
-
-    var json_data = json.decode(jsondata);
-    var transcript = json_data['transcript'];
-
-    for (var sentence in transcript['text']) {
-      print(sentence['start'].toString());
-      print(sentence[r'$t']);
+    if (_scrollController.offset >= _scrollController.position.maxScrollExtent &&
+        !_scrollController.position.outOfRange) {
+      print("reach the bottom");
     }
-    _controller.seekTo(Duration(seconds:14, milliseconds: 954));
-
-    // Await the http get response, then decode the json-formatted response.var response = await http.get(url);
-    if (response.statusCode == 200) {
-      print('-------------------------------------------');
-//      print('Number of books about http: ${response.body}).');
-
-    } else {
-      print('Request failed with status: ${response.statusCode}.');
+    if (_scrollController.offset <= _scrollController.position.minScrollExtent &&
+        !_scrollController.position.outOfRange) {
+      setState(() {
+        print("reach the top");
+      });
     }
   }
 
-  void listener() {
-    if (_isPlayerReady) {
-      if (_controller.value.playerState == PlayerState.ended) {
-        _showSnackBar('Video Ended!');
+  void _youtubeListener() {
+
+    var current_secs = _youtubeController.value.position.inSeconds;
+    var position = current_secs.round();
+    print('YT Listener actvated ${position}');
+
+
+    // TODO: Find closest caption
+    for(var i=currentSentence; i<sentences.length; i++) {
+      var start = double.parse(sentences[i]['start']);
+      var seconds =  start.round();
+      if (position == seconds) {
+        print('                           the index is ${i}');
+        _scrollController.animateTo(
+            i * 80.0, duration: Duration(milliseconds: 300),
+            curve: Curves.easeOut);
+        currentSentence = i;
       }
-      if (mounted && !_controller.value.isFullScreen) {
+    }
+
+    if (_isPlayerReady) {
+      if (_youtubeController.value.playerState == PlayerState.ended) {
+        print('Video Ended!');
+      }
+      if (mounted && !_youtubeController.value.isFullScreen) {
         setState(() {
-          _playerState = _controller.value.playerState;
+          _playerState = _youtubeController.value.playerState;
         });
       }
     }
   }
 
   @override
-  void deactivate() {
-    // Pauses video while navigating to next page.
-    _controller.pause();
-    super.deactivate();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _idController.dispose();
-    _seekToController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        title: Text(
-          'Youtube Player Flutter',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.video_library),
-            onPressed: () => Navigator.push(
-              context,
-              CupertinoPageRoute(
-                builder: (context) => VideoList(),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(50.0),
+        child: AppBar(
+          title: Text(
+            'Shadowing Practice',
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.video_library),
+              onPressed: () => Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => VideoList(),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-      body: ListView(
-        children: [
+      body: Column(
+        children: <Widget> [
           YoutubePlayer(
-            controller: _controller,
+            controller: _youtubeController,
             showVideoProgressIndicator: true,
             progressIndicatorColor: Colors.blueAccent,
             topActions: <Widget>[
@@ -164,39 +155,94 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
                   size: 25.0,
                 ),
                 onPressed: () {
-                  _showSnackBar('Settings Tapped!');
-                  _controller.seekTo(Duration(seconds: 15));
-                  fetchPost();
+//                  fetchPost();
                 },
               ),
             ],
             onReady: () {
               _isPlayerReady = true;
+              fetchPost();
             },
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: sentences.length,
+              itemBuilder: (context, index) {
+                var start = double.parse(sentences[index]['start']);
+                var seconds =  start.round();
+
+                return Card(
+                  child: ListTile(
+                    leading: index == currentSentence
+                        ? Icon(Icons.directions_run) : Icon(Icons.navigate_next),
+                    subtitle: Text(seconds.toString() + ' secs'),
+                    title: Text(
+                      sentences[index][r'$t'],
+                      style: index == currentSentence
+                          ? TextStyle(color: Colors.white):
+                          TextStyle(color: Colors.black45),
+                    ),
+                    onTap: () {
+                      print('onTap : move to ${seconds} ${start}' );
+                      _youtubeController.seekTo(Duration(seconds: seconds));
+                      var postion = index * 80.0;
+                      _scrollController.animateTo(
+                          postion, duration: Duration(milliseconds: 300),
+                          curve: Curves.easeOut);
+                    },
+                    onLongPress: () {
+                      print('Long press');
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showSnackBar(String message) {
-    _scaffoldKey.currentState.showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.w300,
-            fontSize: 16.0,
-          ),
-        ),
-        backgroundColor: Colors.blueAccent,
-        behavior: SnackBarBehavior.floating,
-        elevation: 1.0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50.0),
-        ),
-      ),
-    );
+  fetchPost() async {
+    var url = 'https://www.youtube.com/api/timedtext?v=H14bBuluwB8&lang=en';
+    var xml2json = Xml2Json();
+
+    var response = await http.get(url);
+    var unescape = HtmlUnescape();
+    var body = unescape.convert(response.body);
+    print('Response status: ${response.statusCode}');
+
+    xml2json.parse(body);
+    var jsonData = json.decode(xml2json.toGData());
+    var transcript = jsonData['transcript'];
+    sentences = transcript['text'];
+
+    for (var sentence in transcript['text']) {
+      print(sentence['start']);
+      print(sentence[r'$t']);
+    }
+
+    if (response.statusCode == 200) {
+      print('-------------------------------------------');
+      print('${response.body}');
+
+    } else {
+      print('Request failed with status: ${response.statusCode}.');
+    }
   }
+
+  @override
+  void deactivate() {
+    // Pauses video while navigating to next page.
+    _youtubeController.pause();
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _youtubeController.dispose();
+    super.dispose();
+  }
+
 }

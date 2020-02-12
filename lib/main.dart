@@ -4,11 +4,6 @@ import 'YoutubeCustomWidget.dart';
 import 'YoutubeDefaultWidget.dart';
 
 void main() {
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: Colors.blueAccent,
-    ),
-  );
   runApp(MyApp());
 }
 
@@ -20,6 +15,7 @@ class MyApp extends StatelessWidget {
         '/custom': (BuildContext context) => YoutubeCustomWidget(),
         '/non_custom': (BuildContext context) => null,
       },
+      theme: ThemeData.dark(),
       home: HomeScreen(),
     );
   }
