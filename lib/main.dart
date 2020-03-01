@@ -1,47 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'YoutubeCustomWidget.dart';
-import 'YoutubeDefaultWidget.dart';
+import 'screens/home.dart';
+
+import 'screens/youtube.dart';
 
 void main() {
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) {
+    runApp(new MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      routes: <String, WidgetBuilder>{
-        '/custom': (BuildContext context) => YoutubeCustomWidget(),
+      initialRoute: '/',
+      routes: <String, WidgetBuilder> {
+        '/': (context) => HomeScreen(),
+        '/youtube': (BuildContext context) => YoutubeCustomWidget(),
         '/non_custom': (BuildContext context) => null,
       },
       theme: ThemeData.dark(),
-      home: HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Youtube player')),
-      body: Center(
-        child: Column(children: <Widget>[
-          RaisedButton(
-            onPressed: () {
-              Navigator.of(context).pushNamed('/custom');
-            },
-            child: Text('Open customize player'),
-          ),
-          RaisedButton(
-            onPressed: () {
-              Navigator.of(context).pushNamed('/non_custom');
-            },
-            child: Text('Open non customize player'),
-          ),
-        ]),
-      ),
     );
   }
 }

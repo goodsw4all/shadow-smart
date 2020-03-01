@@ -2,19 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:html_unescape/html_unescape.dart';
+import 'package:smart_shadowing_tool/caption.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import 'video_list.dart';
 
-import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:xml/xml.dart' as xml;
-import 'dart:convert' as convert;
-import 'package:flutter/foundation.dart';
 
-/// Homepage
 class YoutubeCustomWidget extends StatefulWidget {
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -32,6 +28,7 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
 
   var sentences = [];
   var currentSentence = 0;
+  YoutubeCaption caption;
 
   @override
   void initState() {
@@ -47,15 +44,14 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
         loop: false,
         isLive: false,
         enableCaption: false,
-
       ),
     ); //..addListener(listener);
-
 
     _youtubeController.addListener(_youtubeListener);
     _playerState = PlayerState.unknown;
     _scrollController = ScrollController();
     _scrollController.addListener(_scrollListener);
+    caption = YoutubeCaption();
   }
 
   void _scrollListener() {
@@ -155,13 +151,15 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
                   size: 25.0,
                 ),
                 onPressed: () {
-//                  fetchPost();
+                  getCaption();
                 },
               ),
             ],
             onReady: () {
               _isPlayerReady = true;
-              fetchPost();
+//              fetchPost();
+//              sentences = caption.fetchCaption('H14bBuluwB8', 'en');
+//              print(sentences);
             },
           ),
           Expanded(
@@ -202,6 +200,16 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
         ],
       ),
     );
+  }
+
+  getCaption() async {
+
+    dynamic json_data = await caption.fetchCaption('H14bBuluwB8', 'en');
+    print("---- Event Handler ---------------------");
+    print(sentences);
+    setState(() {
+      sentences = json_data;
+    });
   }
 
   fetchPost() async {
