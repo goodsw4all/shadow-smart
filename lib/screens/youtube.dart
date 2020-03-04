@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter/cupertino.dart';
-import 'package:html_unescape/html_unescape.dart';
 import 'package:smart_shadowing_tool/caption.dart';
-import 'package:xml2json/xml2json.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import 'video_list.dart';
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 class YoutubeCustomWidget extends StatefulWidget {
   @override
@@ -19,16 +15,18 @@ class YoutubeCustomWidget extends StatefulWidget {
 class _MyHomePageState extends State<YoutubeCustomWidget> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   YoutubePlayerController _youtubeController;
-  ScrollController _scrollController;
-
   PlayerState _playerState;
+  bool _isPlayerReady = false;
   double _volume = 100;
   bool _muted = false;
-  bool _isPlayerReady = false;
 
+  ScrollController _scrollController;
+
+  YoutubeCaption caption;
   var sentences = [];
   var currentSentence = 0;
-  YoutubeCaption caption;
+
+  final cardExtent = 70.0;
 
   @override
   void initState() {
@@ -70,20 +68,18 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
   }
 
   void _youtubeListener() {
-
     var current_secs = _youtubeController.value.position.inSeconds;
     var position = current_secs.round();
     print('YT Listener actvated ${position}');
 
-
-    // TODO: Find closest caption
+    // TODO: Scroll precisely
     for(var i=currentSentence; i<sentences.length; i++) {
       var start = double.parse(sentences[i]['start']);
       var seconds =  start.round();
       if (position == seconds) {
         print('                           the index is ${i}');
         _scrollController.animateTo(
-            i * 80.0, duration: Duration(milliseconds: 300),
+            i * cardExtent, duration: Duration(milliseconds: 300),
             curve: Curves.easeOut);
         currentSentence = i;
       }
@@ -164,6 +160,8 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
           ),
           Expanded(
             child: ListView.builder(
+              padding: EdgeInsets.symmetric(vertical: 1.0),
+              itemExtent: cardExtent,
               controller: _scrollController,
               itemCount: sentences.length,
               itemBuilder: (context, index) {
@@ -171,6 +169,8 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
                 var seconds =  start.round();
 
                 return Card(
+//                  margin: EdgeInsets.only(top: 10, left: 10, right: 10, bottom: 0),
+//                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                   child: ListTile(
                     leading: index == currentSentence
                         ? Icon(Icons.directions_run) : Icon(Icons.navigate_next),
@@ -210,34 +210,6 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
     setState(() {
       sentences = json_data;
     });
-  }
-
-  fetchPost() async {
-    var url = 'https://www.youtube.com/api/timedtext?v=H14bBuluwB8&lang=en';
-    var xml2json = Xml2Json();
-
-    var response = await http.get(url);
-    var unescape = HtmlUnescape();
-    var body = unescape.convert(response.body);
-    print('Response status: ${response.statusCode}');
-
-    xml2json.parse(body);
-    var jsonData = json.decode(xml2json.toGData());
-    var transcript = jsonData['transcript'];
-    sentences = transcript['text'];
-
-    for (var sentence in transcript['text']) {
-      print(sentence['start']);
-      print(sentence[r'$t']);
-    }
-
-    if (response.statusCode == 200) {
-      print('-------------------------------------------');
-      print('${response.body}');
-
-    } else {
-      print('Request failed with status: ${response.statusCode}.');
-    }
   }
 
   @override
