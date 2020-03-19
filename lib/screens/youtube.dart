@@ -174,17 +174,17 @@ class _MyHomePageState extends State<YoutubeCustomWidget> {
                   child: ListTile(
                     leading: index == currentSentence
                         ? Icon(Icons.directions_run) : Icon(Icons.navigate_next),
-                    subtitle: Text(seconds.toString() + ' secs'),
+                    subtitle: Text(seconds.toString() + ' secs', style:TextStyle( fontSize: 12.0)),
                     title: Text(
                       sentences[index][r'$t'],
                       style: index == currentSentence
-                          ? TextStyle(color: Colors.white):
-                          TextStyle(color: Colors.black45),
+                          ? TextStyle(color: Colors.white, fontSize: 14.0):
+                          TextStyle(color: Colors.black45, fontSize: 12.0),
                     ),
                     onTap: () {
                       print('onTap : move to ${seconds} ${start}' );
                       _youtubeController.seekTo(Duration(seconds: seconds));
-                      var postion = index * 80.0;
+                      var postion = index * cardExtent;
                       _scrollController.animateTo(
                           postion, duration: Duration(milliseconds: 300),
                           curve: Curves.easeOut);
