@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
-
+import 'package:youtube_parser/youtube_parser.dart';
 import 'package:smart_shadowing_tool/screens/youtube.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,31 +20,32 @@ class _HomeScreenState extends State<HomeScreen> {
         inAsyncCall: showSpinner,
         child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-            OutlineButton(
-              onPressed: () {
+                OutlineButton(
+                  onPressed: () {
 //              Navigator.of(context).pushNamed('/youtube');
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return YoutubeCustomWidget();
-                }));
-              },
-              child: Text('Open customize player'),
-            ),
-            FlatButton(
-              onPressed: () {
-                setState(() {
-                  if (showSpinner)
-                    showSpinner = false;
-                  else
-                    showSpinner = true;
-                });
-//                Navigator.of(context).pushNamed('/non_custom');
-              },
-              child: Text('Open non customize player'),
-            ),
-          ]),
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) {
+                      return YoutubeCustomWidget(
+                        videoId: 'Hi its me',
+                      );
+                    }));
+                  },
+                  child: Text('Open customize player'),
+                ),
+                TextField(
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: 'Paste the YouTube URL'),
+                  onChanged: (text) {
+                    String foo = getIdFromUrl(text);
+                    print("First text field: $text $foo");
+                  },
+                ),
+              ]),
         ),
       ),
     );

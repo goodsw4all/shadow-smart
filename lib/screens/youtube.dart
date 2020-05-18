@@ -8,6 +8,11 @@ import 'video_list.dart';
 
 
 class YoutubeCustomWidget extends StatefulWidget {
+  final String videoId;
+  YoutubeCustomWidget({Key key, @required this.videoId}) : super(key: key) {
+    print("DEBUG" + videoId);
+  }
+
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
